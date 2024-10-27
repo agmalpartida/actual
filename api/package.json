@@ -1,0 +1,17 @@
+{
+  "dependencies": {
+    "@actual-app/api": "^24.10.1",
+    "dotenv": "^16.4.5"
+  },
+  "name": "api",
+  "version": "1.0.0",
+  "main": "budget_download.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}
