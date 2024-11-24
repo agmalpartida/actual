@@ -12,27 +12,33 @@ def convert_xls_to_csv(input_file):
     output_file = os.path.splitext(input_file)[0] + "_processed.csv"
 
     # Leer el archivo de Excel, comenzando desde la fila 4
-    df = pd.read_excel(input_file, skiprows=3)
+    try:
+        df = pd.read_excel(input_file, skiprows=3)
+    except Exception as e:
+        print(f"Error al leer el archivo Excel: {e}")
+        sys.exit(1)
+
+    # Mostrar las columnas detectadas para depuración
+    print("Columnas detectadas en el archivo:", df.columns)
+
+    # Renombrar columnas relevantes
+    expected_columns = ['Fecha', 'Categoría', 'Subcategoría', 'Descripción', 'Comentario', 'Imagen', 'Importe', 'Saldo']
+    df.columns = expected_columns
+
+    # Filtrar solo las columnas necesarias
+    df = df[['Fecha', 'Descripción', 'Importe']]
 
     # Lista para almacenar las filas procesadas
     processed_rows = []
 
-    # Renombrar las columnas para facilitar el acceso
-    df.columns = ['Fecha', 'Categoría', 'Subcategoría', 'Descripción', 'Comentario', 'Importe']
-
     for index, row in df.iterrows():
         try:
-            # Validar que la fila tenga al menos 6 columnas
-            if len(row) < 6:
-                print(f"Saltando fila {index + 4}: no tiene suficientes columnas")
-                continue
-
             # Acceso a los valores por nombre de columna
-            date_str = row['Fecha']       # Columna 1 (Fecha)
-            payee = row['Descripción']     # Columna 4 (Beneficiario)
-            amount = row['Importe']        # Columna 6 (Monto)
+            date_str = row['Fecha']       # Columna Fecha
+            payee = row['Descripción']    # Columna Descripción
+            amount = row['Importe']       # Columna Importe
 
-            # Comprobar si date_str es válido
+            # Validar fecha
             if pd.isnull(date_str) or (isinstance(date_str, str) and date_str.strip() == ""):
                 print(f"Saltando fila {index + 4} debido a la falta de fecha o valor inválido")
                 continue
