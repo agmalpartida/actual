@@ -10,18 +10,30 @@ def convert_xls_to_csv(input_file):
     output_file = os.path.splitext(input_file)[0] + "_processed.csv"
 
     try:
-        df = pd.read_excel(input_file, skiprows=4, header=0, dtype=str)  # Saltar filas y forzar encabezado
+        df = pd.read_excel(input_file, header=None, dtype=str)
     except Exception as e:
         print(f"Error reading the Excel file: {e}")
         sys.exit(1)
 
-    print("First 5 rows after skipping:")
-    print(df.head())
+    print("First 10 rows before processing:")
+    print(df.head(10))
 
-    # Convertir nombres de columna a string en minúsculas
-    df.columns = df.columns.map(lambda x: str(x).strip().lower())
+    # Buscar la fila que contiene "F. VALOR"
+    header_row_idx = df[df.apply(lambda row: row.astype(str).str.contains('F. VALOR', case=False, na=False).any(), axis=1)].index.min()
 
-    # Forzar renombrado explícito
+    if header_row_idx is None:
+        print("Error: No se encontró la fila de encabezado con 'F. VALOR'.")
+        sys.exit(1)
+
+    print(f"Detected header at row index: {header_row_idx}")
+
+    # Extraer nombres de las columnas
+    column_names = df.iloc[header_row_idx].str.strip().str.lower().tolist()
+
+    # Volver a leer el archivo saltando filas anteriores y usando los nombres correctos
+    df = pd.read_excel(input_file, skiprows=header_row_idx + 1, names=column_names, dtype=str)
+
+    # Mapeo de nombres esperados
     column_mapping = {
         'f. valor': 'Date',
         'descripción': 'Description',
@@ -47,30 +59,21 @@ def convert_xls_to_csv(input_file):
             amount = row['Amount']
 
             if pd.isnull(date_str) or (isinstance(date_str, str) and date_str.strip() == ""):
-                print(f"Skipping row {index + 5} due to missing or invalid date")
+                print(f"Skipping row {index + header_row_idx + 1} due to missing or invalid date")
                 continue
 
-            try:
-                dt = pd.to_datetime(date_str, dayfirst=True, errors='coerce')
-                if pd.isnull(dt):
-                    print(f"Skipping row {index + 5} due to invalid date format: '{date_str}'")
-                    continue
-                formatted_date = dt.strftime('%d/%m/%Y')
-            except ValueError:
-                print(f"Skipping row {index + 5} due to invalid date format: '{date_str}'")
+            dt = pd.to_datetime(date_str, dayfirst=True, errors='coerce')
+            if pd.isnull(dt):
+                print(f"Skipping row {index + header_row_idx + 1} due to invalid date format: '{date_str}'")
                 continue
+            formatted_date = dt.strftime('%d/%m/%Y')
 
             if pd.isnull(amount) or isinstance(amount, str) and amount.strip() == "":
-                print(f"Skipping row {index + 5} due to missing amount")
+                print(f"Skipping row {index + header_row_idx + 1} due to missing amount")
                 continue
 
             amount_str = str(amount).replace(',', '.').strip()
-
-            try:
-                amount_float = float(amount_str)
-            except ValueError:
-                print(f"Skipping row {index + 5} due to unprocessable amount: '{amount_str}'")
-                continue
+            amount_float = float(amount_str)
 
             amount_formatted = f"{amount_float:.2f}".rstrip('0').rstrip('.')
 
@@ -79,7 +82,7 @@ def convert_xls_to_csv(input_file):
             processed_rows.append([formatted_date, payee, '', amount_formatted])
         
         except Exception as e:
-            print(f"Error processing row {index + 5}: {e}")
+            print(f"Error processing row {index + header_row_idx + 1}: {e}")
 
     processed_df = pd.DataFrame(processed_rows, columns=['Date', 'Payee', 'Notes', 'Amount'])
     processed_df.to_csv(output_file, index=False, quoting=csv.QUOTE_NONE, escapechar='\\')
