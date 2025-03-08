@@ -62,10 +62,18 @@ def convert_xls_to_csv(input_file):
                 print(f"Skipping row {index + header_row_idx + 1} due to missing or invalid date")
                 continue
 
-            dt = pd.to_datetime(date_str, dayfirst=True, errors='coerce')
+            print(f"Raw date at row {index + header_row_idx + 1}: '{date_str}'")
+            
+            # Intentar convertir la fecha directamente si ya está en formato YYYY-MM-DD
+            dt = pd.to_datetime(date_str, format='%Y-%m-%d %H:%M:%S', errors='coerce')
+            
+            if pd.isnull(dt):
+                dt = pd.to_datetime(date_str, dayfirst=True, errors='coerce')
+            
             if pd.isnull(dt):
                 print(f"Skipping row {index + header_row_idx + 1} due to invalid date format: '{date_str}'")
                 continue
+
             formatted_date = dt.strftime('%d/%m/%Y')
 
             if pd.isnull(amount) or isinstance(amount, str) and amount.strip() == "":
